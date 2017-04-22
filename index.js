@@ -4,11 +4,6 @@
 
 'use strict';
 
-const { randomBytes } = require('crypto');
-const hdkey = require('hdkey');
-const secp256k1 = require('secp256k1');
-
-
 /**
  * Registers the Spartacus implementation as a Kad plugin
  * @param {string} xpriv - Extended private key
