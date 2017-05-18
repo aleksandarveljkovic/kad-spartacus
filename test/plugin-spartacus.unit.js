@@ -228,15 +228,18 @@ describe('SpartacusPlugin', function() {
           ]
         }
       ];
-      let signature = secp256k1.sign(
+      let { signature, recovery } = secp256k1.sign(
         utils._sha256(Buffer.from(JSON.stringify(payload))),
         plugin.privateKey
-      ).signature;
+      );
       let auth = {
         jsonrpc: '2.0',
         method: 'AUTHENTICATE',
         params: [
-          signature.toString('hex'),
+          Buffer.concat([
+            Buffer.from([recovery]),
+            signature
+          ]).toString('base64'),
           plugin.publicKey.toString('hex'),
           [plugin.publicExtendedKey, plugin.derivationIndex]
         ]
