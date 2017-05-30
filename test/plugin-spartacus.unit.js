@@ -2,8 +2,7 @@
 
 const { expect } = require('chai');
 const sinon = require('sinon');
-const proxyquire = require('proxyquire');
-const secp256k1 = require('secp256k1');
+const kad = require('kad');
 const SpartacusPlugin = require('../lib/plugin-spartacus');
 const utils = require('../lib/utils');
 
@@ -12,58 +11,40 @@ describe('SpartacusPlugin', function() {
 
   describe('@constructor', function() {
 
-    it('should replace node identity and overload rpc methods', function() {
+    it('should replace node identity and add transforms', function() {
       let id = utils.toPublicKeyHash('test');
       let node = {
         identity: id,
-        rpc: { _opts: {} },
+        rpc: {
+          serializer: { append: sinon.stub() },
+          deserializer: { prepend: sinon.stub() }
+        },
         router: {},
         contact: {}
       };
       let plugin = new SpartacusPlugin(node);
       expect(node.identity).to.equal(plugin.identity);
       expect(node.router.identity).to.equal(plugin.identity);
-      expect(typeof node.rpc._opts.serializer).to.equal('function');
-      expect(typeof node.rpc._opts.deserializer).to.equal('function');
+      expect(node.rpc.serializer.append.called).to.equal(true);
+      expect(node.rpc.deserializer.prepend.called).to.equal(true);
     });
 
   });
 
   describe('@method serialize', function() {
 
-    it('should callback error if JsonRpcSerializer fails', function(done) {
-      let Plugin = proxyquire('../lib/plugin-spartacus', {
-        kad: {
-          Messenger: {
-            JsonRpcSerializer: sinon.stub().callsArgWith(
-              1,
-              new Error('Parse error')
-            )
-          }
-        }
-      });
-      let node = {
-        identity: null,
-        rpc: { _opts: {} },
-        router: {},
-        contact: {}
-      };
-      let plugin = new Plugin(node);
-      plugin.serialize([], (err) => {
-        expect(err.message).to.equal('Parse error');
-        done();
-      });
-    });
-
     it('should add an AUTHENTICATE message to the payload', function(done) {
       let node = {
         identity: null,
-        rpc: { _opts: {} },
+        rpc: {
+          serializer: { append: sinon.stub() },
+          deserializer: { prepend: sinon.stub() }
+        },
         router: {},
         contact: {}
       };
       let plugin = new SpartacusPlugin(node);
-      plugin.serialize([
+      kad.Messenger.JsonRpcSerializer([
         { method: 'PING', params: [] },
         [
           plugin.identity.toString('hex'),
@@ -73,12 +54,14 @@ describe('SpartacusPlugin', function() {
           utils.toPublicKeyHash('test').toString('hex'),
           { hostname: 'localhost', port: 8080}
         ]
-      ], (err, [, buffer]) => {
-        let result = JSON.parse(buffer.toString());
-        expect(result).to.have.lengthOf(3);
-        expect(result[1].params[0]).to.equal(plugin.identity.toString('hex'));
-        expect(result[2].params).to.have.lengthOf(3);
-        done();
+      ], (err, data) => {
+        plugin.serialize(data, null, (err, [, buffer]) => {
+          let result = JSON.parse(buffer.toString());
+          expect(result).to.have.lengthOf(3);
+          expect(result[1].params[0]).to.equal(plugin.identity.toString('hex'));
+          expect(result[2].params).to.have.lengthOf(3);
+          done();
+        });
       });
     });
 
@@ -89,7 +72,10 @@ describe('SpartacusPlugin', function() {
     it('should callback error if id is not pubkeyhash', function(done) {
       let node = {
         identity: null,
-        rpc: { _opts: {} },
+        rpc: {
+          serializer: { append: sinon.stub() },
+          deserializer: { prepend: sinon.stub() }
+        },
         router: {},
         contact: {}
       };
@@ -118,7 +104,7 @@ describe('SpartacusPlugin', function() {
             [plugin.publicExtendedKey, plugin.derivationIndex]
           ]
         }
-      ])), (err) => {
+      ])), null, (err) => {
         expect(err.message).to.equal('Identity does not match public key');
         done();
       });
@@ -127,7 +113,10 @@ describe('SpartacusPlugin', function() {
     it('should callback error if invalid signature', function(done) {
       let node = {
         identity: null,
-        rpc: { _opts: {} },
+        rpc: {
+          serializer: { append: sinon.stub() },
+          deserializer: { prepend: sinon.stub() }
+        },
         router: {},
         contact: {}
       };
@@ -158,7 +147,7 @@ describe('SpartacusPlugin', function() {
             [plugin.publicExtendedKey, plugin.derivationIndex]
           ]
         }
-      ])), (err) => {
+      ])), null, (err) => {
         expect(err.message).to.equal('Message includes invalid signature');
         done();
       });
@@ -167,7 +156,10 @@ describe('SpartacusPlugin', function() {
     it('should callback error if invalid child', function(done) {
       let node = {
         identity: null,
-        rpc: { _opts: {} },
+        rpc: {
+          serializer: { append: sinon.stub() },
+          deserializer: { prepend: sinon.stub() }
+        },
         router: {},
         contact: {}
       };
@@ -198,57 +190,8 @@ describe('SpartacusPlugin', function() {
             [plugin.publicExtendedKey, 1]
           ]
         }
-      ])), (err) => {
+      ])), null, (err) => {
         expect(err.message).to.equal('Public key is not a valid child');
-        done();
-      });
-    });
-
-    it('should pass buffer to the JsonRpcDeserializer', function(done) {
-      let node = {
-        identity: null,
-        rpc: { _opts: {} },
-        router: {},
-        contact: {}
-      };
-      let plugin = new SpartacusPlugin(node);
-      let payload = [
-        {
-          jsonrpc: '2.0',
-          id: 'test',
-          method: 'PING',
-          params: []
-        },
-        {
-          jsonrpc: '2.0',
-          method: 'IDENTIFY',
-          params: [
-            plugin.identity.toString('hex'),
-            { hostname: 'localhost', port: 8080 }
-          ]
-        }
-      ];
-      let { signature, recovery } = secp256k1.sign(
-        utils._sha256(Buffer.from(JSON.stringify(payload))),
-        plugin.privateKey
-      );
-      let auth = {
-        jsonrpc: '2.0',
-        method: 'AUTHENTICATE',
-        params: [
-          Buffer.concat([
-            Buffer.from([recovery]),
-            signature
-          ]).toString('base64'),
-          plugin.publicKey.toString('hex'),
-          [plugin.publicExtendedKey, plugin.derivationIndex]
-        ]
-      };
-      payload.push(auth);
-      plugin.deserialize(Buffer.from(JSON.stringify(payload)), (err, data) => {
-        expect(err).to.equal(null);
-        expect(Array.isArray(data)).to.equal(true);
-        expect(data).to.have.lengthOf(2);
         done();
       });
     });

@@ -1,6 +1,6 @@
 {
   "name": "kad-spartacus",
-  "version": "2.0.2",
+  "version": "2.1.0",
   "description": "spartacus attack mitigation plugin for kad",
   "main": "index.js",
   "scripts": {
@@ -26,7 +26,7 @@
   "dependencies": {
     "hdkey": "^0.7.1",
     "jsonrpc-lite": "^1.2.3",
-    "kad": "^2.0.0",
+    "kad": "^2.3.0",
     "secp256k1": "^3.2.5"
   },
   "devDependencies": {
