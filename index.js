@@ -8,10 +8,11 @@
  * Registers the Spartacus implementation as a Kad plugin
  * @param {string} xpriv - Extended private key
  * @param {number} index - Child derivation index
+ * @param {string} path - Child derivation path
  */
-let index = module.exports = function(xpriv, index) {
+let index = module.exports = function(xpriv, index, path) {
   return function(node) {
-    return new module.exports.SpartacusPlugin(node, xpriv, index);
+    return new module.exports.SpartacusPlugin(node, xpriv, index, path);
   };
 };
 

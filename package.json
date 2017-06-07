@@ -1,6 +1,6 @@
 {
   "name": "kad-spartacus",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "spartacus attack mitigation plugin for kad",
   "main": "index.js",
   "scripts": {
