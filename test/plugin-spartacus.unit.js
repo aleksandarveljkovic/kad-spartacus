@@ -20,7 +20,8 @@ describe('SpartacusPlugin', function() {
           deserializer: { prepend: sinon.stub() }
         },
         router: {},
-        contact: {}
+        contact: {},
+        use: sinon.stub()
       };
       let plugin = new SpartacusPlugin(node);
       expect(node.identity).to.equal(plugin.identity);
@@ -41,7 +42,8 @@ describe('SpartacusPlugin', function() {
           deserializer: { prepend: sinon.stub() }
         },
         router: {},
-        contact: {}
+        contact: {},
+        use: sinon.stub()
       };
       let plugin = new SpartacusPlugin(node);
       kad.Messenger.JsonRpcSerializer([
@@ -77,7 +79,8 @@ describe('SpartacusPlugin', function() {
           deserializer: { prepend: sinon.stub() }
         },
         router: {},
-        contact: {}
+        contact: {},
+        use: sinon.stub()
       };
       let plugin = new SpartacusPlugin(node);
       plugin.deserialize(Buffer.from(JSON.stringify([
@@ -118,7 +121,8 @@ describe('SpartacusPlugin', function() {
           deserializer: { prepend: sinon.stub() }
         },
         router: {},
-        contact: {}
+        contact: {},
+        use: sinon.stub()
       };
       let plugin = new SpartacusPlugin(node);
       plugin.deserialize(Buffer.from(JSON.stringify([
@@ -161,7 +165,8 @@ describe('SpartacusPlugin', function() {
           deserializer: { prepend: sinon.stub() }
         },
         router: {},
-        contact: {}
+        contact: {},
+        use: sinon.stub()
       };
       let plugin = new SpartacusPlugin(node);
       plugin.deserialize(Buffer.from(JSON.stringify([
